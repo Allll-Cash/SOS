@@ -1,0 +1,43 @@
+stages:
+  - build
+  - deploy-dev
+  - deploy-prod
+
+build:
+  stage: build
+  tags:
+    - dev
+  before_script:
+    - docker login -u mathwave -p $DOCKERHUB_PASSWORD
+  script:
+    - docker build -t mathwave/sprint-repo:studreply .
+    - docker push mathwave/sprint-repo:studreply
+
+.deploy:
+  before_script:
+    - docker login -u mathwave -p $DOCKERHUB_PASSWORD
+
+deploy-dev:
+  extends:
+    - .deploy
+  stage: deploy-dev
+  tags:
+    - dev
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: on_success
+    - when: manual
+  script:
+    - docker stack deploy --with-registry-auth -c ./.deploy/deploy-dev.yaml studreply
+
+deploy-prod:
+  extends:
+    - .deploy
+  stage: deploy-prod
+  tags:
+    - prod
+  only:
+    - master
+  when: manual
+  script:
+    - docker stack deploy --with-registry-auth -c ./.deploy/deploy-prod.yaml studreply

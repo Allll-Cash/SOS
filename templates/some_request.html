@@ -1,0 +1,19 @@
+<b>Заявка №{{ request.id }}</b> <i style="color: {% if request.status == 0 %}blue{% else %}{% if request.status == 1 %}red{% else %}green{% endif %}{% endif %};" class="fa fa-circle"></i> {% if request.status == 0 %}Взята{% else %}{% if request.status == 1 %}Вакантна{% else %}Обработана{% endif %}{% endif %}<br>
+<b>Студент: </b>{% if request.anonymous %}Анонимный запрос{% else %}{% firstof request.student.telegram_name request.client.telegram_username request.client.telegram_id %}{% endif %}<br>
+<hr>
+{% for message in request.messages %}
+    <div style="background-color: {% if message.sent_by_operator %}lightgreen{% else %}lightblue{% endif %};margin: 5px; padding: 5px; border-radius: 5px; white-space: normal; word-wrap: break-word;">
+        <b>{% if message.sent_by_operator %}Менеджер{% else %}Студент{% endif %}:</b> <p>{{ message.text }}</p> <small><i>{{ message.time_sent }}</i></small><br>
+        {% if message.has_photo %}
+            <img onclick="window.open('/photo?id={{ message.id }}', '_blank').focus();" src="/photo?id={{ message.id }}" width="300px" /><br>
+        {% endif %}
+    </div>
+{% endfor %}
+<br>
+{% if request.status == 1 %}
+<button id="status_0" onclick="setStatus(0);" class="btn btn-danger">Взять заявку в работу</button> <button id="status_2" onclick="setStatus(2);" class="btn btn-success">Закрыть заявку</button>
+{% else %}{% if request.status == 0 %}
+<button id="status_2" onclick="setStatus(2);" class="btn btn-success">Закрыть заявку</button>
+{% else %}
+{% endif %}
+{% endif %}

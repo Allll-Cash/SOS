@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block body %}
+    <div class="ctr">
+        <form method="POST">
+            <center>
+                <h1>Авторизация</h1><br>
+                {% if error %}<p style="color: red;">Неправильные данные</p>{% endif %}
+                <input name="username" type="text" class="form-control form-control-lg" placeholder="Имя пользователя" required><br>
+                <input name="password" type="password" class="form-control form-control-lg" placeholder="Пароль" required><br>
+                <button type="submit" class="btn btn-primary btn-lg">Вход</button>
+            </center>
+        </form>
+    </div>
+{% endblock %}

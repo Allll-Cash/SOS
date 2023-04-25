@@ -1,0 +1,9 @@
+{% for request in requests %}
+    <tr>
+        <td style="background-color: {% if request.unreplied %}lightpink{% else %}white{% endif %};">
+            <b>Заявка {{ request.id }}</b>: <i style="color: {% if request.status == 0 %}blue{% else %}{% if request.status == 1 %}red{% else %}green{% endif %}{% endif %};" class="fa fa-circle"></i> {% if request.status == 0 %}Взята{% else %}{% if request.status == 1 %}Вакантна{% else %}Обработана{% endif %}{% endif %}<br>
+            <span style="max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;">{{ request.last_message.text }}</span><br>
+            <button class="btn btn-link" onclick="selectRequest({{ request.id }})">Посмотреть</button>
+        </td>
+    </tr>
+{% endfor %}

@@ -1,0 +1,68 @@
+version: "3.4"
+
+
+services:
+
+  studreply-nginx:
+    image: mathwave/sprint-repo:studreply
+    networks:
+      - net
+      - common-infra-nginx
+    environment:
+      DB_HOST: "pg.sprinthub.ru"
+      MINIO_HOST: "minio.sprinthub.ru"
+      MINIO_SECRET_KEY: $MINIO_SECRET_KEY_PROD
+      DB_PASSWORD: $DB_PASSWORD_PROD
+      TELEGRAM_TOKEN: $TELEGRAM_TOKEN_PROD
+    command: runserver 0.0.0.0:1238
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: start-first
+
+  bot:
+    image: mathwave/sprint-repo:studreply
+    networks:
+      - net
+    environment:
+      DB_HOST: "pg.sprinthub.ru"
+      MINIO_HOST: "minio.sprinthub.ru"
+      MINIO_SECRET_KEY: $MINIO_SECRET_KEY_PROD
+      DB_PASSWORD: $DB_PASSWORD_PROD
+      TELEGRAM_TOKEN: $TELEGRAM_TOKEN_PROD
+    command: bot
+    deploy:
+      mode: replicated
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  migrations:
+    image: mathwave/sprint-repo:studreply
+    networks:
+      - net
+    command: migrate
+    environment:
+      DB_HOST: "pg.sprinthub.ru"
+      MINIO_HOST: "minio.sprinthub.ru"
+      MINIO_SECRET_KEY: $MINIO_SECRET_KEY_PROD
+      DB_PASSWORD: $DB_PASSWORD_PROD
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        order: start-first
+
+networks:
+  net:
+    driver: overlay
+  common-infra-nginx:
+    external: true

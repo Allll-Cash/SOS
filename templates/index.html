@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block scripts %}
+    <script>
+        var request_id = 0;
+        function doPoll() {
+            jQuery.get('/some_request?id=' + request_id.toString(), function(data) {
+                var e = document.getElementById('request_body');
+                if (e.innerHTML !== data)
+                    e.innerHTML = data;
+                const url = new URL(window.location.href);
+                const searchParams = url.searchParams;
+                jQuery.get('/requests_table', function(data) {
+                    var e = document.getElementById('requests_table');
+                    if (e.innerHTML !== data)
+                        e.innerHTML = data;
+                    setTimeout(function() {doPoll()}, 2000);
+                });
+            });
+        }
+
+        function selectRequest(req) {
+            request_id = req;
+        }
+
+        function sendMessage() {
+            const node = document.getElementById("message")
+            const mess = node.value;
+            jQuery.get('/send_message?request_id=' + request_id.toString() + "&message=" + mess, function(data) {});
+            node.value = "";
+        }
+
+        function setStatus(status) {
+            jQuery.get('/set_status?request_id=' + request_id.toString() + "&status=" + status, function(data) {});
+            document.getElementById("status_" + status.toString()).hidden = true;
+            if (status === "2") {
+                document.getElementById("status_0").hidden = true;
+            }
+        }
+    </script>
+{% endblock %}
+
+{% block onload %}doPoll(){% endblock %}
+
+{% block body %}
+    <a class="btn btn-secondary" href="/exit_account" style="float: right; margin-right: 2%; margin-top: -1%;">Выход</a>
+    <div class="row">
+        <div class="col-2">
+            <table style="width: 100%; margin-top: 20px;" class="table">
+                <tbody id="requests_table">
+
+                </tbody>
+            </table>
+        </div>
+        <div class="col-1"></div>
+            <div class="col-9">
+                <div style="border-width: 1px; border-color: black; border-style: dotted; width: 80%;" id="request_body"></div>
+                <input type="text" placeholder="Сообщение пользователю" id="message" style="width: 80%;"><button onclick="sendMessage()" style="margin-left: 10px;" class="btn btn-primary">Отправить</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
