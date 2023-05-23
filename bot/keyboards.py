@@ -22,6 +22,7 @@ def faculty_keyboard():
     kb = keyboard()
     for faculty in FACULTIES:
         kb.row(faculty)
+    kb.row(Config.no_my_faculty)
     kb.row(Config.rollback)
     return kb
 

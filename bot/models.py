@@ -36,8 +36,11 @@ class Student(models.Model):
 class Request(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, db_index=True)
     status = models.IntegerField(default=1)  # 0 - взята, 1 - вакантна, 2 - выполнена
-    destination = models.TextField(db_index=True)
+    destination = models.TextField(db_index=True, null=True)
     anonymous = models.BooleanField(default=False)
+    reason = models.TextField(default="")
+    faculty = models.TextField(default="")
+    ready = models.BooleanField(default=False)
 
     @property
     def last_message(self):

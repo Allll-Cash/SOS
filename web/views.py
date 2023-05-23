@@ -1,10 +1,10 @@
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render
 from telebot.apihelper import ApiTelegramException
 
 from bot import keyboards as kb
-from bot.config import Config
+from bot.config import Config, FACULTIES, OTHER_PROBLEMS, STUDSOVETS
 from bot.management.commands.bot import bot
 from bot.models import Request, TelegramMessage
 from common.utils import auth_required
@@ -27,6 +27,11 @@ def auth(request):
 
 @auth_required
 def photo(request):
+    if 'filename' in request.GET:
+        with open(f'content/{request.GET["filename"]}', 'rb') as fp:
+            return HttpResponse(
+                fp.read(), content_type="image/png"
+            )
     return HttpResponse(
         minio.get_object(f"photos/{request.GET['id']}.jpg"), content_type="image/jpg"
     )
@@ -60,18 +65,23 @@ def set_status(request):
     req.status = int(request.GET['status'])
     req.save()
     if req.status == 2:
-        bot.send_message(req.student.telegram_id, Config.dialog_finished, reply_markup=kb.start_keyboard())
+        try:
+            bot.send_message(req.student.telegram_id, Config.dialog_finished, reply_markup=kb.start_keyboard())
+        except Exception as e:
+            pass
         req.student.state = "start"
         req.student.save()
+        TelegramMessage.objects.create(request=req, text=Config.operator_finished, sent_by_operator=True)
     return HttpResponse("")
 
 
 @auth_required
 def requests_table(request):
-    if request.user.is_superuser:
-        filter_requests = Request.objects.all()
-    else:
-        filter_requests = Request.objects.filter(destination=request.user.username)
+    reasons = request.GET['reasons'].split('_')
+    reasons_list = [key for key, value in OTHER_PROBLEMS.items() if value in reasons]
+    filter_requests = Request.objects.filter(ready=True, reason__in=reasons_list)
+    if not request.user.is_superuser:
+        filter_requests = filter_requests.filter(destination=request.user.username)
     return render(request, 'requests_table.html', {
         "requests": filter_requests.order_by("status", "-id")
     })
@@ -79,7 +89,17 @@ def requests_table(request):
 
 @auth_required
 def index(request):
-    return render(request, 'index.html')
+    role = 'admin'
+    need_filter = True
+    for key, value in FACULTIES.items():
+        if value == request.user.username:
+            role = key
+            break
+    role = STUDSOVETS.get(request.user.username) or role
+    return render(request, 'index.html', {
+        'role': role,
+        'need_filter': need_filter
+    })
 
 
 @auth_required
@@ -97,3 +117,12 @@ def some_request(request):
 def exit_account(request):
     logout(request)
     return HttpResponseRedirect("/auth")
+
+
+@auth_required
+def can_write(request):
+    request_id = int(request.GET['request_id'])
+    if request_id == 0:
+        return JsonResponse({"can_write": False})
+    req = Request.objects.get(id=request_id)
+    return JsonResponse({"can_write": req.status == 0})
