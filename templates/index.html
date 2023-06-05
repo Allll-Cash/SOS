@@ -2,25 +2,43 @@
 
 {% block scripts %}
     <script>
-        var request_id = 0;
+        var request_id = null;
         function doPoll() {
-            jQuery.get('/some_request?id=' + request_id.toString(), function(data) {
-                var e = document.getElementById('request_body');
+            var reasons = [];
+            const elements = ["campus", "dormitory", "education", "foreign", "other"];
+            elements.forEach(element => {
+                let elem = document.getElementById(element);
+                if (elem.checked) {
+                    reasons.push(element);
+                }
+            });
+            jQuery.get('/requests_table?reasons=' + reasons.join("_"), function(data) {
+                var e = document.getElementById('requests_table');
                 if (e.innerHTML !== data)
                     e.innerHTML = data;
-                const url = new URL(window.location.href);
-                const searchParams = url.searchParams;
-                jQuery.get('/requests_table', function(data) {
-                    var e = document.getElementById('requests_table');
-                    if (e.innerHTML !== data)
-                        e.innerHTML = data;
-                    setTimeout(function() {doPoll()}, 2000);
-                });
+                if (request_id !== null) {
+                    jQuery.get('/some_request?id=' + request_id.toString(), function(data) {
+                        var e = document.getElementById('request_body');
+                        if (e.innerHTML !== data)
+                            e.innerHTML = data;
+                    });
+                }
+                setTimeout(function() {doPoll()}, 2000);
+            });
+        }
+
+        function checkCanWrite(request_id) {
+            jQuery.get('/can_write?request_id=' + request_id.toString(), function(data) {
+                document.getElementById('input_text').hidden = !data.can_write;
             });
         }
 
         function selectRequest(req) {
+            if (request_id === null) {
+                document.getElementById('main_div').innerHTML = '<div style="border: 3px solid orange; width: 80%; padding: 10px;" id="request_body"></div> <div id="input_text" style="margin-top: 5px;"><input type="text" placeholder="Сообщение пользователю" id="message" style="width: 65%; border-color: orange; border-width: 5px; border-radius: 5px; background-color: white; padding: 5px;"><button class="btn btn-primary" style="background-color: orange; margin-left: 1%;"><i class="fa fa-image"></i></button><button onclick="sendMessage()" style="margin-left: 1%; width: 10%; background-color: orange;" class="btn btn-primary">Отправить</button></div>'
+            }
             request_id = req;
+            checkCanWrite(request_id);
         }
 
         function sendMessage() {
@@ -36,6 +54,7 @@
             if (status === "2") {
                 document.getElementById("status_0").hidden = true;
             }
+            document.getElementById('input_text').hidden = status === 2;
         }
     </script>
 {% endblock %}
@@ -43,20 +62,78 @@
 {% block onload %}doPoll(){% endblock %}
 
 {% block body %}
-    <a class="btn btn-secondary" href="/exit_account" style="float: right; margin-right: 2%; margin-top: -1%;">Выход</a>
+    <!-- Button trigger modal -->
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal" style="float: right; margin-right: 2%; margin-top: -1%; background-color: orange; font-size: 150%;">
+      <i class="fa fa-user"></i>
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Информация об аккаунте</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <h3>
+                <b>{{ role }}</b><br>
+            </h3>
+              <h5>
+                <b>Логин</b>: {{ user.username }}
+              </h5>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+            <a class="btn btn-primary" href="/exit_account" style="background-color: orange;">Выйти из аккаунта</a>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row">
         <div class="col-2">
-            <table style="width: 100%; margin-top: 20px;" class="table">
+            <!-- Button trigger modal -->
+            {% if need_filter %}
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal1" style="background-color: orange; font-size: 150%;">
+      <i class="fa fa-filter"></i>
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="exampleModal1" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel1" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel1">Фильтр по обращениям</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+              <input type="checkbox" checked id="campus" /> Проблема связанная с корпусом обучения<br>
+              <input type="checkbox" checked id="dormitory" /> Проблема в общежитии<br>
+              <input type="checkbox" checked id="education" /> Вопросы связанные с образовательным процессом<br>
+              <input type="checkbox" checked id="foreign" /> Проблема у иностранного студента<br>
+              <input type="checkbox" checked id="other" /> Другое
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    </div>
+            {% endif %}
+            <table style="width: 100%; margin-top: 20px; border: orange;" class="table">
                 <tbody id="requests_table">
 
                 </tbody>
             </table>
         </div>
         <div class="col-1"></div>
-            <div class="col-9">
-                <div style="border-width: 1px; border-color: black; border-style: dotted; width: 80%;" id="request_body"></div>
-                <input type="text" placeholder="Сообщение пользователю" id="message" style="width: 80%;"><button onclick="sendMessage()" style="margin-left: 10px;" class="btn btn-primary">Отправить</button>
-            </div>
+        <div class="col-9" id="main_div">
+            <h1>Выберите обращение и посмотрите информацию по нему</h1>
+            <img src="/photo?filename=birds.png" width="80%" />
         </div>
     </div>
 {% endblock %}

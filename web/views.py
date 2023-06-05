@@ -4,7 +4,7 @@ from django.shortcuts import render
 from telebot.apihelper import ApiTelegramException
 
 from bot import keyboards as kb
-from bot.config import Config, FACULTIES, OTHER_PROBLEMS, STUDSOVETS
+from bot.config import Config, FACULTIES, OTHER_PROBLEMS, STUDSOVETS, OTHER_PROBLEMS_DICT
 from bot.management.commands.bot import bot
 from bot.models import Request, TelegramMessage
 from common.utils import auth_required
@@ -78,7 +78,7 @@ def set_status(request):
 @auth_required
 def requests_table(request):
     reasons = request.GET['reasons'].split('_')
-    reasons_list = [key for key, value in OTHER_PROBLEMS.items() if value in reasons]
+    reasons_list = [key for key, value in OTHER_PROBLEMS_DICT.items() if value in reasons]
     filter_requests = Request.objects.filter(ready=True, reason__in=reasons_list)
     if not request.user.is_superuser:
         filter_requests = filter_requests.filter(destination=request.user.username)
